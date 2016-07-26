@@ -1,0 +1,71 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../oc-edit-option/oc-edit-option.html">
+
+<!--
+`oc-edit-local-option`
+Element for editing a local option
+
+@demo demo/index.html 
+-->
+
+<dom-module id="oc-edit-local-option">
+  <style>
+    :host {
+      display: block;
+    }
+  </style>
+
+  <template>
+    <oc-edit-option id="optionEditor" on-unlock-option-sets-page-changed="_optionSetsPageChanged" on-save="_onSave"></oc-edit-option>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'oc-edit-local-option',
+
+      properties: {
+        organisationId: Number,
+        optionId: Number,
+        loading: {
+          type: Boolean,
+          notify: true
+        }
+      },
+
+      observers: [
+        'refresh(organisationId, optionId)'
+      ],
+
+      refresh: function() {
+        this.loading = true;
+        if (this.organisationId && this.optionId) {
+          this.$.optionsApi.getOption(this.optionId)
+                  .then(function(request) {
+                    this.$.optionEditor.setOption(request.response);
+                    this._getOptionSets();
+                  }.bind(this))
+                  .catch(this.fire.bind(this, 'option-error', 'Could not load option'))
+        }
+      },
+
+      _getOptionSets: function() {
+        this.$.optionsApi.getOptionSets()
+                .then(function(request) {
+                  this.$.optionEditor.setOptionSetItems(request.response.results, request.response.count, 1)
+                }.bind(this))
+                .catch(this.fire.bind(this, 'option-error', 'Could not load option sets'))
+                .finally(this.set.bind(this, 'loading', false))
+      },
+
+      _optionSetsPageChanged: function(event) {
+        // ToDo: get the next page
+      },
+
+      _onSave: function() {
+        this.$.optionEditor.getOption();
+      }
+
+    });
+  </script>
+</dom-module>
