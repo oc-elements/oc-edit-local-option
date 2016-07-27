@@ -1,5 +1,7 @@
 <link rel="import" href="../polymer/polymer.html">
+
 <link rel="import" href="../oc-edit-option/oc-edit-option.html">
+<link rel="import" href="../oc-product-option-api/oc-product-option-api.html">
 
 <!--
 `oc-edit-local-option`
@@ -16,7 +18,16 @@ Element for editing a local option
   </style>
 
   <template>
-    <oc-edit-option id="optionEditor" on-unlock-option-sets-page-changed="_optionSetsPageChanged" on-save="_onSave"></oc-edit-option>
+    <oc-product-option-api id="optionsApi"></oc-product-option-api>
+    <oc-edit-option
+      id="optionEditor"
+      items="[[ _items ]]"
+      total-items="[[ _totalItems ]]"
+      page-size="[[ _pageSize ]]"
+      current-page="[[ _currentPage ]]"
+      on-unlock-option-sets-page-changed="_optionSetsPageChanged"
+      on-save="_onSave"
+    ></oc-edit-option>
   </template>
 
   <script>
@@ -38,28 +49,31 @@ Element for editing a local option
       ],
 
       refresh: function() {
-        this.loading = true;
         if (this.organisationId && this.optionId) {
+          this.loading = true;
           this.$.optionsApi.getOption(this.optionId)
                   .then(function(request) {
                     this.$.optionEditor.setOption(request.response);
-                    this._getOptionSets();
+                    this._getOptionSets(1, 10);
                   }.bind(this))
                   .catch(this.fire.bind(this, 'option-error', 'Could not load option'))
         }
       },
 
-      _getOptionSets: function() {
-        this.$.optionsApi.getOptionSets()
-                .then(function(request) {
-                  this.$.optionEditor.setOptionSetItems(request.response.results, request.response.count, 1)
-                }.bind(this))
-                .catch(this.fire.bind(this, 'option-error', 'Could not load option sets'))
-                .finally(this.set.bind(this, 'loading', false))
+      _optionSetsPageChanged: function(detail) {
+        this._getOptionSets(detail.page, detail.range);
       },
 
-      _optionSetsPageChanged: function(event) {
-        // ToDo: get the next page
+      _getOptionSets(page, pageSize) {
+        this.$.optionsApi.getOptionSets(page, pageSize)
+                .then(function(request) {
+                  this._items = request.response.results;
+                  this._totalItems = request.response.count;
+                  this._currentPage = page;
+                  this._pageSize = pageSize;
+                }.bind(this))
+                .catch(this.fire.bind(this, 'option-set-error', 'Failed to load option sets'))
+                .finally(this.set.bind(this, 'loading', false));
       },
 
       _onSave: function() {

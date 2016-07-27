@@ -4,6 +4,7 @@
   "main": "oc-edit-local-option.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^1.4.0",
+    "oc-product-option-api": "git://github.com/oc-elements/oc-product-option-api#1.x",
     "oc-edit-option": "git://github.com/oc-elements/oc-edit-option#1.x"
   },
   "devDependencies": {
