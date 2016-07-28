@@ -20,13 +20,15 @@ Element for editing a local option
   <template>
     <oc-product-option-api id="optionsApi"></oc-product-option-api>
     <oc-edit-option
-      id="optionEditor"
-      items="[[ _items ]]"
-      total-items="[[ _totalItems ]]"
-      page-size="[[ _pageSize ]]"
-      current-page="[[ _currentPage ]]"
-      on-unlock-option-sets-page-changed="_optionSetsPageChanged"
-      on-save="_onSave"
+            id="optionEditor"
+            option-sets-items="[[ _items ]]"
+            option-sets-total-items="[[ _totalItems ]]"
+            option-sets-page-size="[[ _pageSize ]]"
+            option-sets-current-page="[[ _currentPage ]]"
+            on-unlock-option-sets-page-changed="_optionSetsPageChanged"
+            on-add-unlock-option-set="_addUnlockOptionSet"
+            on-remove-unlock-option-set="_removeUnlockOptionSet"
+            on-save="_onSave"
     ></oc-edit-option>
   </template>
 
@@ -51,20 +53,15 @@ Element for editing a local option
       refresh: function() {
         if (this.organisationId && this.optionId) {
           this.loading = true;
-          this.$.optionsApi.getOption(this.optionId)
-                  .then(function(request) {
-                    this.$.optionEditor.setOption(request.response);
-                    this._getOptionSets(1, 10);
-                  }.bind(this))
-                  .catch(this.fire.bind(this, 'option-error', 'Could not load option'))
+          this._getOption();
         }
       },
 
-      _optionSetsPageChanged: function(detail) {
-        this._getOptionSets(detail.page, detail.range);
+      _optionSetsPageChanged: function(event) {
+        this._getOptionSets(event.detail.detail.page, event.detail.detail.range);
       },
 
-      _getOptionSets(page, pageSize) {
+      _getOptionSets: function(page, pageSize) {
         this.$.optionsApi.getOptionSets(page, pageSize)
                 .then(function(request) {
                   this._items = request.response.results;
@@ -76,10 +73,36 @@ Element for editing a local option
                 .finally(this.set.bind(this, 'loading', false));
       },
 
-      _onSave: function() {
-        this.$.optionEditor.getOption();
-      }
+      _getOption: function() {
+        this.$.optionsApi.getOption(this.optionId)
+                .then(function(request) {
+                  this.$.optionEditor.setOption(request.response);
+                  this._getOptionSets(1, 100);
+                }.bind(this))
+                .catch(this.fire.bind(this, 'option-error', 'Could not load option'));
+      },
 
+      _addUnlockOptionSet: function(event) {
+        this.$.optionsApi.addUnlockOptionSet(this.optionId, event.detail.id)
+                .catch(this.fire.bind(this, 'option-error', 'Could not add unlock option set'))
+      },
+
+      _removeUnlockOptionSet: function(event) {
+        this.$.optionsApi.removeUnlockOptionSet(this.optionId, event.detail.id)
+                .catch(this.fire.bind(this, 'option-error', 'Could not add unlock option set'))
+      },
+
+      _onSave: function(event) {
+        this.loading = true;
+        this.$.optionsApi.updateOption(event.detail.id, {
+          name: event.detail.name,
+          description: event.detail.description,
+          price: event.detail.price,
+          setId: event.detail.setId,
+          itemsPluFlatMappingEnabled: false})
+                .catch(this.fire.bind(this, 'option-error', 'Could not load option'))
+                .finally(this.set.bind(this, 'loading', false));
+      }
     });
   </script>
 </dom-module>
